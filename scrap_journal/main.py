@@ -1,5 +1,6 @@
 from requests_oauthlib import OAuth1Session
 import os
+import datetime
 import pickle
 import configparser
 
@@ -76,7 +77,7 @@ def get_oauth_tokens():
     return oauth_tokens
 
 
-def connect_to_endpoint(oauth_tokens):
+def fetch_tweets(oauth_tokens):
     consumer_key, consumer_secret = get_consumer_keys()
     access_token = oauth_tokens["oauth_token"]
     access_token_secret = oauth_tokens["oauth_token_secret"]
@@ -105,8 +106,30 @@ def connect_to_endpoint(oauth_tokens):
     return response.json()
 
 
+def process_tweet(tweet):
+    text = tweet["text"]
+    dt_utc = datetime.datetime.strptime(tweet["created_at"],
+                                        "%a %b %d %H:%M:%S %z %Y")
+    tz_jst = datetime.timezone(datetime.timedelta(hours=9))
+    dt_jst = dt_utc.astimezone(tz_jst)
+    time_str = dt_jst.strftime("%H:%M")
+    return text, time_str
+
+
+def add_indent(line, line_number):
+    indent = "  " if line_number > 0 else " "
+    return indent + line
+
+
+def generate_output(text, time):
+    lines = text.split("\n")
+    lines[0] = "{}（{}）".format(lines[0], time)
+    return "\n".join([add_indent(li, i) for i, li in enumerate(lines)])
+
+
 def main():
     oauth_tokens = get_oauth_tokens()
-    tweets = connect_to_endpoint(oauth_tokens)
+    tweets = fetch_tweets(oauth_tokens)
     for tweet in tweets[::-1]:
-        print(tweet["text"])
+        text, time = process_tweet(tweet)
+        print(generate_output(text, time))
