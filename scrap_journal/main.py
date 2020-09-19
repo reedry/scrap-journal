@@ -117,7 +117,12 @@ def process_tweet(tweet):
     tz_jst = datetime.timezone(datetime.timedelta(hours=9))
     dt_jst = dt_utc.astimezone(tz_jst)
     time_str = dt_jst.strftime("%H:%M")
-    return text, time_str
+    return generate_output(text, time_str)
+
+
+def process_tweets(tweets):
+    events = map(lambda t: process_tweet(t), reversed(tweets))
+    return "\n".join(events)
 
 
 def add_indent(line, line_number):
@@ -129,6 +134,10 @@ def generate_output(text, time):
     lines = text.split("\n")
     lines[0] = "{}（{}）".format(lines[0], time)
     return "\n".join([add_indent(li, i) for i, li in enumerate(lines)])
+
+
+def convert_to_scrapbox(output):
+    return
 
 
 def get_history():
@@ -147,6 +156,9 @@ def main():
     argparser.add_argument("-a", "--all",
                            help="display as many tweets as possible.",
                            action="store_true")
+    argparser.add_argument("-r", "--raw",
+                           help="display to stdout.",
+                           action="store_true")
     args = argparser.parse_args()
 
     oauth_tokens = get_oauth_tokens()
@@ -158,9 +170,7 @@ def main():
     if len(tweets) == 0:
         print("No new tweets")
         return
-    for tweet in tweets[::-1]:
-        text, time = process_tweet(tweet)
-        print(generate_output(text, time))
+    output = process_tweets(tweets)
 
     latest = tweets[0]["id"]
     home = os.path.expanduser("~")
@@ -168,3 +178,8 @@ def main():
     if not args.all:
         with open(history_path, "wb") as hist:
             pickle.dump(latest, hist)
+
+    if args.raw:
+        print(output)
+    else:
+        convert_to_scrapbox(output)
