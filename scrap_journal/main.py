@@ -77,7 +77,7 @@ def get_oauth_tokens():
     return oauth_tokens
 
 
-def fetch_tweets(oauth_tokens):
+def fetch_tweets(oauth_tokens, latest=None):
     consumer_key, consumer_secret = get_consumer_keys()
     access_token = oauth_tokens["oauth_token"]
     access_token_secret = oauth_tokens["oauth_token_secret"]
@@ -91,6 +91,8 @@ def fetch_tweets(oauth_tokens):
     )
     config = get_config()
     params = {"screen_name": config["twitter_name"], "count": "200"}
+    if latest is not None:
+        params["since_id"] = str(latest)
     response = oauth.get(
         "https://api.twitter.com/1.1/statuses/user_timeline.json",
         params=params
@@ -127,9 +129,33 @@ def generate_output(text, time):
     return "\n".join([add_indent(li, i) for i, li in enumerate(lines)])
 
 
+def get_history():
+    home = os.path.expanduser("~")
+    history_path = os.path.join(home, ".config/scrap-journal/history.pickle")
+    if os.path.exists(history_path):
+        with open(history_path, "rb") as hist:
+            history = pickle.load(hist)
+        return history
+    else:
+        return None
+
+
 def main():
     oauth_tokens = get_oauth_tokens()
-    tweets = fetch_tweets(oauth_tokens)
+    history = get_history()
+    if history is not None:
+        tweets = fetch_tweets(oauth_tokens, latest=history)
+    else:
+        tweets = fetch_tweets(oauth_tokens)
+    if len(tweets) == 0:
+        print("No new tweets")
+        return
     for tweet in tweets[::-1]:
         text, time = process_tweet(tweet)
         print(generate_output(text, time))
+
+    latest = tweets[0]["id"]
+    home = os.path.expanduser("~")
+    history_path = os.path.join(home, ".config/scrap-journal/history.pickle")
+    with open(history_path, "wb") as hist:
+        pickle.dump(latest, hist)
