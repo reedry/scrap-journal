@@ -1,8 +1,10 @@
-from requests_oauthlib import OAuth1Session
-import os
-import datetime
-import pickle
+import argparse
 import configparser
+import datetime
+import os
+import pickle
+
+from requests_oauthlib import OAuth1Session
 
 
 def get_consumer_keys():
@@ -141,9 +143,15 @@ def get_history():
 
 
 def main():
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("-a", "--all",
+                           help="display as many tweets as possible.",
+                           action="store_true")
+    args = argparser.parse_args()
+
     oauth_tokens = get_oauth_tokens()
     history = get_history()
-    if history is not None:
+    if history is not None and not args.all:
         tweets = fetch_tweets(oauth_tokens, latest=history)
     else:
         tweets = fetch_tweets(oauth_tokens)
@@ -157,5 +165,6 @@ def main():
     latest = tweets[0]["id"]
     home = os.path.expanduser("~")
     history_path = os.path.join(home, ".config/scrap-journal/history.pickle")
-    with open(history_path, "wb") as hist:
-        pickle.dump(latest, hist)
+    if not args.all:
+        with open(history_path, "wb") as hist:
+            pickle.dump(latest, hist)
