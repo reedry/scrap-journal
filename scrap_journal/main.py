@@ -3,6 +3,7 @@ import configparser
 import datetime
 import os
 import pickle
+import urllib.parse
 
 from requests_oauthlib import OAuth1Session
 
@@ -137,6 +138,13 @@ def generate_output(text, time):
 
 
 def convert_to_scrapbox(output):
+    config = get_config()
+    proj_name = config["scrapbox_proj"]
+    url_template = "https://scrapbox.io/{}/{}?body={}"
+    encoded = urllib.parse.quote(output)
+    today = datetime.datetime.now().strftime("%Y%m%d")
+    url = url_template.format(proj_name, today, encoded)
+    print(url)
     return
 
 
