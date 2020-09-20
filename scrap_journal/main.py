@@ -80,7 +80,7 @@ def get_oauth_tokens():
     return oauth_tokens
 
 
-def fetch_tweets(oauth_tokens, latest=None):
+def fetch_tweets(oauth_tokens, count, latest=None):
     consumer_key, consumer_secret = get_consumer_keys()
     access_token = oauth_tokens["oauth_token"]
     access_token_secret = oauth_tokens["oauth_token_secret"]
@@ -93,7 +93,7 @@ def fetch_tweets(oauth_tokens, latest=None):
         resource_owner_secret=access_token_secret,
     )
     config = get_config()
-    params = {"screen_name": config["twitter_name"], "count": "200"}
+    params = {"screen_name": config["twitter_name"], "count": str(count)}
     if latest is not None:
         params["since_id"] = str(latest)
     response = oauth.get(
@@ -167,14 +167,18 @@ def main():
     argparser.add_argument("-r", "--raw",
                            help="display to stdout.",
                            action="store_true")
+    argparser.add_argument("-c", "--count",
+                           help="number of tweets to fetch"\
+                           " (default: 200 (maximum)).",
+                           default=200, type=int)
     args = argparser.parse_args()
 
     oauth_tokens = get_oauth_tokens()
     history = get_history()
     if history is not None and not args.all:
-        tweets = fetch_tweets(oauth_tokens, latest=history)
+        tweets = fetch_tweets(oauth_tokens, args.count, latest=history)
     else:
-        tweets = fetch_tweets(oauth_tokens)
+        tweets = fetch_tweets(oauth_tokens, args.count)
     if len(tweets) == 0:
         print("No new tweets")
         return
