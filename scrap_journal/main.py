@@ -3,6 +3,7 @@ import configparser
 import datetime
 import os
 import pickle
+import subprocess
 import urllib.parse
 
 from requests_oauthlib import OAuth1Session
@@ -25,7 +26,8 @@ def get_config():
         "consumer_key": config["consumer_keys"]["key"],
         "consumer_secret": config["consumer_keys"]["secret"],
         "twitter_name": config["twitter"]["user"],
-        "scrapbox_proj": config["scrapbox"]["project"]
+        "scrapbox_proj": config["scrapbox"]["project"],
+        "browser": config["browser"]["command"]
     }
     return res
 
@@ -137,15 +139,20 @@ def generate_output(text, time):
     return "\n".join([add_indent(li, i) for i, li in enumerate(lines)])
 
 
-def convert_to_scrapbox(output):
+def convert_to_url(output):
     config = get_config()
     proj_name = config["scrapbox_proj"]
     url_template = "https://scrapbox.io/{}/{}?body={}"
     encoded = urllib.parse.quote(output)
     today = datetime.datetime.now().strftime("%Y%m%d")
     url = url_template.format(proj_name, today, encoded)
-    print(url)
-    return
+    return url
+
+
+def open_browser(url):
+    config = get_config()
+    command = config["browser"]
+    subprocess.run([command, url])
 
 
 def get_history():
@@ -168,7 +175,7 @@ def main():
                            help="display to stdout.",
                            action="store_true")
     argparser.add_argument("-c", "--count",
-                           help="number of tweets to fetch"\
+                           help="number of tweets to fetch"
                            " (default: 200 (maximum)).",
                            default=200, type=int)
     args = argparser.parse_args()
@@ -194,4 +201,5 @@ def main():
     if args.raw:
         print(output)
     else:
-        convert_to_scrapbox(output)
+        url = convert_to_url(output)
+        open_browser(url)
